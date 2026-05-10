@@ -1,6 +1,6 @@
 {
   "name": "@yaz231/claude-knowledge-graph",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Semantic code intelligence + persistent project memory for Claude Code",
   "bin": {
     "ckg": "dist/cli.js"

@@ -63,3 +63,19 @@ npm run build && npm version [patch|minor|major] && npm publish --access public
 - **Runtime**: commander, inquirer, chalk
 - **Dev**: typescript, @types/node, @types/inquirer
 - **External**: Python 3.8+ with `anthropic` package
+---
+## Session Summary — 2026-05-10 22:26 UTC
+### Files Modified
+- `src/cli.ts`, `src/config.ts`, `src/installer.ts`
+- `hooks/post_tool_use.py`, `hooks/stop.py`
+- `scripts/init_claude_md.py`
+### What Changed
+- Refined CLI commands and installer logic in `src/`
+- Updated Python hooks (`post_tool_use`, `stop`) likely for improved file-change detection or error handling
+- Revised `init_claude_md.py` crawler, possibly for better Anthropic API usage or dry-run behavior
+- Config adjustments to support new CLI or hook behavior
+### CLAUDE.md Files Updated
+- `/Users/yazanalatrach/Projects/claude-knowledge-graph/hooks`
+- `/Users/yazanalatrach/Projects/claude-knowledge-graph/scripts`
+- `/Users/yazanalatrach/Projects/claude-knowledge-graph/src`
+---

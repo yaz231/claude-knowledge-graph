@@ -3,7 +3,7 @@ import path from 'path';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
 import { getCkgDir, getClaudeDir, ensureDir, deepMerge, readJsonFile, writeJsonFile, commandExists, copyFile, appendToFile } from './utils.js';
-import { writeConfig } from './config.js';
+import { writeConfig, storeApiKeyInKeychain } from './config.js';
 
 // inquirer is ESM-only; we import it dynamically
 async function getInquirer() {
@@ -88,8 +88,16 @@ export async function runInstaller(): Promise<void> {
     },
   ]);
 
-  // Write config
-  writeConfig(answers);
+  // Store API key in macOS Keychain; save everything else to config
+  try {
+    storeApiKeyInKeychain(answers.anthropic_api_key);
+    console.log(chalk.green('✓ API key stored in macOS Keychain'));
+  } catch {
+    console.log(chalk.yellow('⚠ Could not store key in Keychain (non-macOS?). Set ANTHROPIC_API_KEY env var instead.'));
+  }
+
+  const { anthropic_api_key: _, ...configWithoutKey } = answers;
+  writeConfig(configWithoutKey);
   console.log(chalk.green(`✓ Config saved to ${getCkgDir()}/config.json`));
 
   // Step 7 — copy hooks

@@ -2,13 +2,14 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
+import { version } from '../package.json';
 
 const program = new Command();
 
 program
   .name('ckg')
   .description('Claude Knowledge Graph — semantic code intelligence + persistent project memory for Claude Code')
-  .version('0.1.0');
+  .version(version);
 
 // Default command — interactive installer
 program

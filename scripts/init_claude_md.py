@@ -29,6 +29,29 @@ def load_config() -> dict:
         return json.load(f)
 
 
+def get_api_key(config: dict) -> str:
+    import subprocess, shutil
+    # 1. macOS Keychain
+    if shutil.which("security"):
+        try:
+            user = os.environ.get("USER", os.environ.get("USERNAME", ""))
+            result = subprocess.run(
+                ["security", "find-generic-password", "-a", user, "-s", "claude-knowledge-graph", "-w"],
+                capture_output=True, text=True
+            )
+            key = result.stdout.strip()
+            if key:
+                return key
+        except Exception:
+            pass
+    # 2. Environment variable
+    env_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if env_key:
+        return env_key
+    # 3. Legacy config fallback
+    return config.get("anthropic_api_key", "")
+
+
 ALWAYS_SKIP = {
     "node_modules", ".git", "__pycache__", "dist", "build", ".next",
     ".venv", "venv", ".env", ".temp", "worktrees", ".codegraph",
@@ -172,9 +195,9 @@ Be concise. Max 80 lines. Output only the CLAUDE.md content, no preamble."""
 def crawl(root: Path, ignore_patterns: list[str], config: dict, dry_run: bool) -> None:
     import anthropic  # type: ignore[import-untyped]
 
-    api_key = config.get("anthropic_api_key", "")
+    api_key = get_api_key(config)
     if not api_key:
-        print("[error] No anthropic_api_key in config.", file=sys.stderr)
+        print("[error] No API key found. Store it via `ckg install`, set ANTHROPIC_API_KEY, or add anthropic_api_key to ~/.ckg/config.json.", file=sys.stderr)
         sys.exit(1)
 
     model = config.get("init_model", "claude-sonnet-4-6")

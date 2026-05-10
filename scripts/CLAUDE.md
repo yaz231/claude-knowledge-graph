@@ -13,13 +13,18 @@ python init_claude_md.py [--path .] [--dry-run] [--ignore-file .ckgignore]
 - `--dry-run` mode available for testing without making API calls.
 
 ## Conventions
-- Respects `.ckgignore` patterns and `ALWAYS_SKIP` set (`node_modules`, `.git`, `__pycache__`, `dist`, `build`, `.next`, `venv`, `.env`, `.temp`, `worktrees`, `.codegraph`)
+- Respects `.ckgignore` patterns and `ALWAYS_SKIP` set (expanded to include: `node_modules`, `.git`, `__pycache__`, `dist`, `build`, `.next`, `venv`, `.venv`, `.env`, `.temp`, `worktrees`, `.codegraph`, `site-packages`, `.turbo`, `.cache`, `coverage`, `.pytest_cache`, `.mypy_cache`, `*.egg-info`, `.tox`, `htmlcov`)
 - Caps files per directory at `MAX_FILES_PER_DIR = 20` to manage API context size
 - Skips files larger than `MAX_FILE_BYTES = 100KB`
 - Only processes files with recognized `SOURCE_EXTENSIONS` (`.py`, `.ts`, `.tsx`, `.js`, `.jsx`, `.go`, `.rs`, `.java`, `.rb`, `.php`, `.c`, `.cpp`, `.h`, `.hpp`, `.cs`, `.swift`, `.kt`, `.scala`, `.sh`, `.yaml`, `.yml`, `.toml`, `.json`, `.md`, `.sql`, `.html`, `.css`, `.scss`)
 - Auto-detects tech stack from manifest files: `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`
 - Root-level CLAUDE.md includes project metadata; subdirectory CLAUDE.md files focus on local purpose
 - Existing CLAUDE.md content is preserved and passed to the API for incremental updates
+
+## API Key Resolution Order
+1. macOS Keychain (`security find-generic-password` for service `claude-knowledge-graph`)
+2. `ANTHROPIC_API_KEY` environment variable
+3. Legacy `anthropic_api_key` field in `~/.ckg/config.json`
 
 ## Dependencies / Relationships
 - Requires CKG config at `~/.ckg/config.json` (or `$CKG_CONFIG_DIR/config.json`) for Claude API credentials
@@ -32,6 +37,7 @@ python init_claude_md.py [--path .] [--dry-run] [--ignore-file .ckgignore]
 - Ignore patterns use `fnmatch` for glob-style matching, consistent with `.gitignore` conventions
 - Graceful handling of `PermissionError` and read failures—directories/files are silently skipped
 - `CLAUDE.md` itself is excluded from file listings sent to the API to avoid circular references
+- `ALWAYS_SKIP` now includes additional Python/JS tooling cache dirs for broader coverage
 
 ## Do Not
 - Do not modify the `ALWAYS_SKIP` set without understanding downstream effects on all projects using this tool

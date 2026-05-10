@@ -13,7 +13,8 @@ Post-tool-use hook system for maintaining CLAUDE.md files and session logging af
 
 ## Configuration
 - Config read from `~/.ckg/config.json` (overridable via `CKG_CONFIG_DIR` env var).
-- Required: `anthropic_api_key`. Optional: `hook_model` (defaults to `claude-haiku-4-5-20251001`).
+- API key resolved in priority order: macOS Keychain (`claude-knowledge-graph` service) → `ANTHROPIC_API_KEY` env var → `anthropic_api_key` in config.
+- Optional: `hook_model` (defaults to `claude-haiku-4-5-20251001`).
 - Errors logged to `~/.ckg/logs/hook-errors.log`.
 - Session state stored in `~/.ckg/session-log.json` (written by post_tool_use, read/cleared by stop).
 
@@ -23,6 +24,7 @@ Both hooks duplicate the same helper functions rather than importing a shared mo
 - `get_log_path()` — returns `~/.ckg/logs/hook-errors.log`.
 - `log_error(msg)` — timestamped error append to log file.
 - `load_config()` — reads `~/.ckg/config.json`, returns `{}` if missing.
+- `get_api_key(config)` — resolves API key via Keychain → env var → config fallback.
 
 ## File Scanning Rules (post_tool_use)
 - Recognized source extensions: `.py`, `.ts`, `.tsx`, `.js`, `.jsx`, `.go`, `.rs`, `.java`, `.rb`, `.php`, `.c`, `.cpp`, `.h`, `.hpp`, `.cs`, `.swift`, `.kt`, `.scala`, `.sh`, `.yaml`, `.yml`, `.toml`, `.json`, `.md`, `.sql`, `.html`, `.css`, `.scss`.
@@ -32,12 +34,13 @@ Both hooks duplicate the same helper functions rather than importing a shared mo
 - Analysis capped at 10 source files and 3000 chars per file to keep LLM prompts efficient.
 
 ## Project Root Detection
-Auto-detected by walking up the directory tree to find `package.json`, `pyproject.toml`, `.git`, `go.mod`, or `Cargo.toml`.
+Auto-detected by walking up the directory tree to find `.git` (priority), then `package.json`, `pyproject.toml`, `go.mod`, or `Cargo.toml`.
 
 ## Stop Hook Summary Format
 - Timestamp (UTC), modified files list, inferred changes (2–5 bullets), affected directories.
 - Preserves last 3000 chars of existing root CLAUDE.md for context when generating the summary.
 - Guards against recursive hook triggers via a `stop_hook_active` flag.
+- Summary capped at 512 tokens / 20 lines.
 
 ## Dependencies
 - `anthropic` SDK for LLM-based content generation.
@@ -49,3 +52,4 @@ Auto-detected by walking up the directory tree to find `package.json`, `pyprojec
 - Do not include any skip directories in analysis.
 - Do not read files larger than 100KB.
 - Do not trigger hooks recursively (stop hook guards against this).
+- Both hooks use `defaultdict` and `collections` for grouping session log entries.

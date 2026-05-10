@@ -35,10 +35,33 @@ def load_config() -> dict:
         return json.load(f)
 
 
+def get_api_key(config: dict) -> str:
+    import subprocess, shutil
+    # 1. macOS Keychain
+    if shutil.which("security"):
+        try:
+            user = os.environ.get("USER", os.environ.get("USERNAME", ""))
+            result = subprocess.run(
+                ["security", "find-generic-password", "-a", user, "-s", "claude-knowledge-graph", "-w"],
+                capture_output=True, text=True
+            )
+            key = result.stdout.strip()
+            if key:
+                return key
+        except Exception:
+            pass
+    # 2. Environment variable
+    env_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if env_key:
+        return env_key
+    # 3. Legacy config fallback
+    return config.get("anthropic_api_key", "")
+
+
 def generate_session_summary(project_root: str, files: list[str], config: dict) -> str:
     import anthropic  # type: ignore[import-untyped]
 
-    api_key = config.get("anthropic_api_key", "")
+    api_key = get_api_key(config)
     if not api_key:
         return ""
 
