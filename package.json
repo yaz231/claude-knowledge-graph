@@ -2,12 +2,14 @@
   "name": "@yaz231/claude-knowledge-graph",
   "version": "0.1.0",
   "description": "Semantic code intelligence + persistent project memory for Claude Code",
-  "bin": { "ckg": "./dist/cli.js" },
+  "bin": {
+    "ckg": "dist/cli.js"
+  },
   "author": "yaz231",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yaz231/claude-knowledge-graph"
+    "url": "git+https://github.com/yaz231/claude-knowledge-graph.git"
   },
   "peerDependencies": {
     "@colbymchenry/codegraph": "*"
