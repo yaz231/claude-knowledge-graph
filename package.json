@@ -1,0 +1,46 @@
+{
+  "name": "@yaz231/claude-knowledge-graph",
+  "version": "0.1.0",
+  "description": "Semantic code intelligence + persistent project memory for Claude Code",
+  "bin": { "ckg": "./dist/cli.js" },
+  "author": "yaz231",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yaz231/claude-knowledge-graph"
+  },
+  "peerDependencies": {
+    "@colbymchenry/codegraph": "*"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "inquirer": "^9.0.0",
+    "chalk": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "@types/inquirer": "^9.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/",
+    "hooks/",
+    "scripts/"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "codegraph",
+    "knowledge-graph",
+    "ai",
+    "developer-tools"
+  ]
+}
