@@ -71,15 +71,22 @@ def read_file_safe(path: Path) -> str:
 
 
 def infer_project_root(file_path: Path) -> str:
-    """Walk up to find the first directory containing package.json, pyproject.toml, or .git."""
+    """Walk up to find the repo root (.git takes priority, then other markers)."""
     current = file_path.parent
-    markers = {"package.json", "pyproject.toml", ".git", "go.mod", "Cargo.toml"}
+    git_root = None
+    last_marker_root = None
+    
     for parent in [current, *current.parents]:
-        if any((parent / m).exists() for m in markers):
-            return str(parent)
+        if (parent / ".git").exists():
+            git_root = parent
+            break
+        if any((parent / m).exists() for m in {"package.json", "pyproject.toml", "go.mod", "Cargo.toml"}):
+            last_marker_root = parent
         if parent == parent.parent:
             break
-    return str(file_path.parent)
+    
+    result = git_root or last_marker_root or file_path.parent
+    return str(result)
 
 
 def append_session_event(file_path: str, project_root: str) -> None:

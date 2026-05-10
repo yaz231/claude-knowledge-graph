@@ -31,7 +31,9 @@ def load_config() -> dict:
 
 ALWAYS_SKIP = {
     "node_modules", ".git", "__pycache__", "dist", "build", ".next",
-    "venv", ".env", ".temp", "worktrees", ".codegraph",
+    ".venv", "venv", ".env", ".temp", "worktrees", ".codegraph",
+    "site-packages", ".turbo", ".cache", "coverage", ".pytest_cache",
+    ".mypy_cache", "*.egg-info", ".tox", "htmlcov",
 }
 
 SOURCE_EXTENSIONS = {

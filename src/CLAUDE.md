@@ -1,58 +1,44 @@
 # src
 
 ## Purpose
-CLI command infrastructure, configuration management, utility functions for file system operations, JSON handling, command execution, and installation workflow for Claude Knowledge Graph. MCP server entry point for future CKG-native MCP tools.
+Core source for Claude Knowledge Graph CLI: command routing, configuration management, MCP server entry point, installation wizard, and shared utilities for file system/JSON/command operations.
 
 ## Key Files
-- `cli.ts` — Commander.js CLI entry point; routes commands to subcommands
-- `config.ts` — Configuration interface, read/write operations with defaults
-- `utils.ts` — Core utility functions
-- `installer.ts` — Interactive setup wizard for CKG initialization
-- `mcp-server.ts` — MCP server entry point; delegates symbol intelligence to CodeGraph MCP server; placeholder for future CKG-native MCP tools
-- `commands/` — Subcommand implementations (init, uninit, status, sync)
+- `cli.ts` — Commander.js CLI entry point; routes `install`, `init`, `uninit`, `status`, `sync` commands via dynamic imports to `./commands/` submodules
+- `config.ts` — `CkgConfig` interface, read/write with defaults merging; stored at `~/.ckg/config.json`
+- `utils.ts` — Shared utilities: `getCkgDir`, `getClaudeDir`, `ensureDir`, `deepMerge`, `readJsonFile`, `writeJsonFile`, `commandExists`, `runCommand`, `copyFile`, `appendToFile`
+- `installer.ts` — Interactive setup wizard: checks CodeGraph, prompts for API key/models/python path, copies hook scripts, configures `~/.claude/settings.json`
+- `mcp-server.ts` — MCP server stub; validates API key, placeholder for future CKG-native MCP tools (symbol intelligence delegated to CodeGraph MCP)
 
-## Conventions
-- Directory paths via environment variables (`CKG_CONFIG_DIR`, `HOME`)
-- JSON files stored with 2-space indentation and trailing newline
-- Command execution wrapped with error handling
-- Configuration merges with defaults on read
-- Inquirer used for interactive CLI prompts (imported dynamically as ESM)
-- Model selection offers tier-specific choices (fast/cheap vs. quality)
-- Commander.js for CLI routing; async actions with dynamic imports for subcommands
-- MCP server configured in `~/.claude.json`; CKG delegates to CodeGraph MCP for symbol lookup
+## Patterns & Conventions
+- **Dynamic imports**: subcommands in `cli.ts` and `inquirer` in `installer.ts` are imported dynamically (ESM compatibility requirement)
+- **Config read-modify-write**: `writeConfig()` reads existing config first, merges partial updates, preserves unspecified fields
+- **Defaults merging**: `readConfig()` spreads `DEFAULTS` under file contents so missing fields get safe defaults
+- **Graceful degradation**: `readJsonFile()` returns default value on any parse/read error
+- **Environment fallbacks**: `CKG_CONFIG_DIR` with `??` fallback to `~/.ckg`; never assume env vars are set
+- **JSON format**: 2-space indentation + trailing newline via `writeJsonFile()`
+- **Directory safety**: all write operations call `ensureDir()` on parent directories first
+- **Error display**: `chalk.red()` for errors + `exit(1)` on fatal; `chalk.green()` for success confirmations
+- **CLI default action**: running `ckg` with no subcommand triggers the installer for frictionless onboarding
 
-## Dependencies / Relationships
-- Node.js built-ins: `fs`, `path`, `child_process`
-- `cli.ts` depends on `installer.ts` and `commands/*` subcommands; orchestrates routing
-- `config.ts` depends on `utils.ts` (`getCkgDir`, `readJsonFile`, `writeJsonFile`)
-- `installer.ts` depends on both `config.ts` and `utils.ts`; orchestrates setup flow
-- `mcp-server.ts` depends on `config.ts`; validates Anthropic API key before startup
-- `chalk` for colored console output
-- `commander` for CLI parsing and routing
-- `inquirer` (ESM, dynamic import) for prompts
-- Used across codebase for common operations
+## Architecture Decisions
+- `deepMerge()` is recursive for objects but replaces arrays and primitives (no array merging)
+- MCP server is intentionally minimal — CodeGraph MCP handles symbol lookup; this file exists for future CKG-native tools
+- `commandExists()` uses `--version` flag to probe tool availability
+- `runCommand()` inherits stdio by default; pass `{ silent: true }` to capture output as string
+- Model defaults: `claude-haiku-4-5-20251001` for hooks (fast/cheap), `claude-sonnet-4-6` for init (quality)
+- `packageDir()` in installer uses `__dirname` to resolve bundled assets relative to the package root
+
+## Dependencies
+- Node built-ins: `fs`, `path`, `child_process`
+- `commander` — CLI parsing and routing
+- `chalk` — Colored terminal output
+- `inquirer` — Interactive prompts (ESM-only, must be dynamically imported)
+- Dependency graph: `config.ts` → `utils.ts`; `installer.ts` → `config.ts` + `utils.ts`; `mcp-server.ts` → `config.ts`
 
 ## Do Not
-- Assume environment variables are set (use fallbacks with `??` operator)
-- Execute untrusted commands directly
-- Modify file permissions or ownership in utilities
-- Bypass default configuration values when reading config
-- Import inquirer statically (must use dynamic import due to ESM-only package)
-- Import subcommands statically (use dynamic imports in action handlers)
-
-## Notes
-- `CkgConfig` interface defines required fields; read operations merge with `DEFAULTS`
-- Config stored at `${CKG_CONFIG_DIR}/config.json`
-- `readConfig()` gracefully handles missing/invalid config files via `readJsonFile()` default handling
-- `writeConfig()` performs read-modify-write to preserve unspecified fields
-- `deepMerge()` recursively merges objects but preserves non-object values
-- `readJsonFile()` returns default value on parse errors (graceful degradation)
-- `runCommand()` inherits stdio by default; use `silent: true` to suppress output
-- All file operations ensure parent directories exist via `ensureDir()`
-- Installer validates CodeGraph availability and prompts for installation
-- Installer copies Python hook scripts (`post_tool_use.py`, `stop.py`) to `~/.claude/hooks/`
-- Installer copies init script (`init_claude_md.py`) to `~/.ckg/scripts/`
-- Installer merges hook configurations into `~/.claude/settings.json` with deep merge preservation
-- MCP server requires `anthropic_api_key` in config; exits with error if not configured
-- MCP server currently delegates symbol intelligence to CodeGraph MCP; future expansion planned for CKG-native MCP tools (e.g., CLAUDE.md search)
-- CLI version 0.1.0; default action runs installer; error handling with chalk.red() and exit(1)
+- Import `inquirer` or subcommand modules statically — breaks ESM compatibility
+- Assume `HOME` or `CKG_CONFIG_DIR` environment variables exist without fallbacks
+- Skip `ensureDir()` before writing files
+- Bypass config defaults by reading the JSON file directly — always use `readConfig()`
+- Execute user-supplied strings through `runCommand()` without validation

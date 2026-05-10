@@ -1,41 +1,30 @@
 # src/commands
 
 ## Purpose
-CLI command handlers. Implements `init`, `uninit`, `status`, and `sync` commands for managing CKG in target directories.
+CLI command handlers for managing Claude Knowledge Graph (CKG) in target directories. Implements `init`, `uninit`, `status`, and `sync` commands.
 
 ## Key Files
-- **init.ts** - Implements `runInit()` to orchestrate CKG initialization:
-  - Runs `codegraph init` to index the target directory
-  - Executes `init_claude_md.py` script to generate CLAUDE.md files
-  - Respects python_path from config or override parameter
-  - Gracefully handles failures with warnings rather than hard errors
-- **uninit.ts** - Implements `runUninit()` to remove CKG from a directory:
-  - Removes `.codegraph/` directory recursively
-  - Leaves CLAUDE.md files in place for manual cleanup
-  - Reports what was removed with status messages
-- **status.ts** - Implements `runStatus()` to report CKG state:
-  - Checks if `.codegraph/` directory exists and reports CodeGraph initialization status
-  - Counts CLAUDE.md coverage across all directories (excluding SKIP_DIRS)
-  - Reports root CLAUDE.md size in KB
-  - Color-codes coverage percentage (green ≥80%, yellow ≥50%, red <50%)
-  - Attempts to run `codegraph status` for additional context
-- **sync.ts** - Implements `runSync()` to update indexed CKG:
-  - Re-indexes CodeGraph via `codegraph index`
-  - Regenerates stale CLAUDE.md files using `init_claude_md.py`
-  - Gracefully handles failures with warnings rather than hard errors
+- **init.ts** — `runInit(targetPath, pythonPathOverride?)`: Runs `codegraph init` then `init_claude_md.py` to generate CLAUDE.md files. Python path resolved from override → config → default.
+- **uninit.ts** — `runUninit(targetPath)`: Removes `.codegraph/` directory but intentionally preserves CLAUDE.md files to avoid accidental data loss.
+- **status.ts** — `runStatus(targetPath)`: Reports CKG state — checks `.codegraph/` existence, calculates CLAUDE.md coverage across directories (color-coded: green ≥80%, yellow ≥50%, red <50%), reports root CLAUDE.md size.
+- **sync.ts** — `runSync(targetPath)`: Re-indexes via `codegraph index` then regenerates stale CLAUDE.md files using the Python script.
 
-## Dependencies / Relationships
-- Imports from `../config.js` — reads python_path configuration (init.ts, sync.ts)
-- Imports from `../utils.js` — getCkgDir() for script location resolution (init.ts, sync.ts)
-- Calls external tools: `codegraph` CLI, Python script at `scripts/init_claude_md.py` (init.ts, sync.ts)
-- Uses chalk for colored console output
-- Uses child_process.execSync for running external commands
+## Patterns & Conventions
+- **Graceful failure**: All external command invocations (`codegraph`, Python scripts) are wrapped in try/catch with `chalk.yellow` warnings — never hard errors. Commands continue executing subsequent steps after failures.
+- **Consistent output style**: `chalk.cyan` for operation start, `chalk.dim` for sub-step progress, `chalk.green('✓')` for success, `chalk.yellow('⚠')` for warnings, `chalk.bold.green('✓')` for final completion.
+- **All functions are async** returning `Promise<void>`, even though current implementations use `execSync`.
+- **Path resolution**: All commands resolve `targetPath` to absolute via `path.resolve()` at the top.
+- **External tool execution**: Uses `child_process.execSync` with `stdio: 'inherit'` for interactive output, except status which uses `stdio: 'pipe'` to capture and reformat output.
 
-## Notes
-- Initialization, uninitialization, status checks, and sync operations are non-blocking
-- Python path is configurable, with override parameter taking precedence (init.ts)
-- Script path is resolved dynamically via getCkgDir() to support different installation locations
-- CLAUDE.md files are intentionally preserved during uninit to avoid accidental data loss
-- Status command skips common build/cache directories: node_modules, .git, __pycache__, dist, build, .next, venv, .temp, worktrees
-- Coverage calculation only counts directories with non-CLAUDE.md files
-- Sync command gracefully handles codegraph index and CLAUDE.md regeneration failures with warnings
+## Dependencies
+- `../config.js` — `readConfig()` for python_path configuration (init.ts, sync.ts)
+- `../utils.js` — `getCkgDir()` for resolving script locations (init.ts, sync.ts)
+- External tools: `codegraph` CLI, `scripts/init_claude_md.py` Python script
+- `chalk` for colored output, `fs` for filesystem operations
+
+## Architecture Notes
+- init and sync both call the same Python script (`init_claude_md.py`) but init first runs `codegraph init` while sync runs `codegraph index`
+- sync.ts does NOT support `pythonPathOverride` — it always reads from config (unlike init.ts)
+- uninit.ts is the only command that doesn't depend on config or utils
+- Status skips directories: `node_modules`, `.git`, `__pycache__`, `dist`, `build`, `.next`, `venv`, `.temp`, `worktrees`
+- Coverage counts only directories containing non-CLAUDE.md files as eligible
